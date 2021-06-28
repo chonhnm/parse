@@ -10,7 +10,7 @@ public class ArithmeticParser {
         ArithmeticParser parser = new ArithmeticParser();
         System.out.println(parser.cal(parser.infixToPostfix("1+2")));
         System.out.println(parser.cal(parser.infixToPostfix("(1+23 *3)-(-2 + --4^2^1*3)")));
-        System.out.println();
+        System.out.println((1+23*3)-(-2 + Math.pow(4,2)*3));
 
     }
 
@@ -133,14 +133,14 @@ public class ArithmeticParser {
             if (this.order() != leftOp.order()) {
                 return this.order() > leftOp.order();
             } else {
-                return this.assoc();
+                return this.rassoc();
             }
         }
 
         abstract int order();
 
         // false=left associativity; true=right associativity
-        protected boolean assoc() {
+        protected boolean rassoc() {
             return false;
         }
 
@@ -191,6 +191,11 @@ public class ArithmeticParser {
         }
 
         @Override
+        protected boolean rassoc() {
+            return true;
+        }
+
+        @Override
         public void cal(Stack<Operand> numStack) {
         }
     }
@@ -232,6 +237,11 @@ public class ArithmeticParser {
         @Override
         int order() {
             return 2;
+        }
+
+        @Override
+        protected boolean rassoc() {
+            return true;
         }
 
         @Override
@@ -308,7 +318,7 @@ public class ArithmeticParser {
         }
 
         @Override
-        protected boolean assoc() {
+        protected boolean rassoc() {
             return true;
         }
 
