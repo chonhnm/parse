@@ -1,5 +1,7 @@
 package lexer.reg;
 
+import Util.LexerException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -8,9 +10,9 @@ public class ArithmeticParser {
 
     public static void main(String[] args) {
         ArithmeticParser parser = new ArithmeticParser();
-        System.out.println(parser.cal(parser.infixToPostfix("1+2")));
-        System.out.println(parser.cal(parser.infixToPostfix("(1+23 *3)-(-2 + --4^2^1*3)")));
-        System.out.println((1+23*3)-(-2 + Math.pow(4,2)*3));
+        assert (int) parser.cal(parser.infixToPostfix("1+2")) == 1;
+        parser.cal(parser.infixToPostfix("(1+23*3)-(-2 + --4^2^1*3)"));
+        assert (float) parser.cal(parser.infixToPostfix("(1+23*3)-(-2 + --4^2^1*3.0)")) == 24.0;
 
     }
 
@@ -25,26 +27,25 @@ public class ArithmeticParser {
         return numStack.pop().getValue();
     }
 
-    public List<Ele> infixToPostfix(String expr) {
+    public List<Ele> infixToPostfix(String expr){
         List<Ele> result = new ArrayList<>();
         Stack<Operator> opStack = new Stack<>();
-        StringBuilder numBuilder = new StringBuilder();
         int len = expr.length();
+        StringBuilder numBuilder = new StringBuilder();
         for (int i = 0; i < len; i++) {
             char c = expr.charAt(i);
             Operator pop;
             Operator op;
             switch (c) {
-                case ' ' -> outputNumber(result, numBuilder);
+                case ' ' -> {
+                }
                 case '(' -> opStack.push(new LeftBrace());
                 case ')' -> {
-                    outputNumber(result, numBuilder);
                     while (!((pop = opStack.pop()) instanceof LeftBrace)) {
                         result.add(pop);
                     }
                 }
                 case '+' -> {
-                    outputNumber(result, numBuilder);
                     Character pc = previousChar(expr, i);
                     if (pc == ')' || pc == '.' || (pc >= '0' && pc <= '9')) {
                         op = new Add();
@@ -54,7 +55,6 @@ public class ArithmeticParser {
                     pushIn(result, opStack, op);
                 }
                 case '-' -> {
-                    outputNumber(result, numBuilder);
                     Character pc = previousChar(expr, i);
                     if (pc == ')' || pc == '.' || (pc >= '1' && pc <= '9')) {
                         op = new Sub();
@@ -64,36 +64,57 @@ public class ArithmeticParser {
                     pushIn(result, opStack, op);
                 }
                 case '*' -> {
-                    outputNumber(result, numBuilder);
                     op = new Mul();
                     pushIn(result, opStack, op);
                 }
                 case '/' -> {
-                    outputNumber(result, numBuilder);
                     op = new Div();
                     pushIn(result, opStack, op);
                 }
                 case '^' -> {
-                    outputNumber(result, numBuilder);
                     op = new Pow();
                     pushIn(result, opStack, op);
                 }
-                default -> numBuilder.append(c);
+                default -> {
+                    if (!isNumChar(c)) {
+                        throw new LexerException(String.format("cannot resolve symbol '%c'", c) , i);
+                    }
+                    numBuilder.append(c);
+                    while (i < (len - 1) && isNumChar(expr.charAt(i + 1))) {
+                        i++;
+                        numBuilder.append(expr.charAt(i));
+                    }
+                    String s = numBuilder.toString();
+
+                    try {
+                        if (s.contains(".")) {
+                            result.add(new FloatValue(Float.valueOf(s)));
+                        } else {
+                            result.add(new IntValue(Integer.valueOf(s)));
+                        }
+                    } catch (NumberFormatException e) {
+                        throw new LexerException("cannot resolve number " + s, i - s.length());
+                    }
+                    numBuilder.setLength(0);
+                }
             }
         }
-        outputNumber(result, numBuilder);
         while (!opStack.isEmpty()) {
             result.add(opStack.pop());
         }
         return result;
     }
 
+    private boolean isNumChar(char c) {
+        return c == '.' || (c >= '1' && c <= '9');
+    }
+
     private Character previousChar(String expr, int i) {
         Character pc = null;
-        for (int j = i - 1; j >=0; j--) {
+        for (int j = i - 1; j >= 0; j--) {
             if (expr.charAt(j) != ' ') {
-               pc =  expr.charAt(j);
-               break;
+                pc = expr.charAt(j);
+                break;
             }
         }
         return pc;
